@@ -1,0 +1,1611 @@
+{
+  "id": "gtmautomation0001",
+  "name": "GTM Automation - Multi-Agent Prospecting",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f192f529-cb2b-48c6-9d74-800b92629017",
+      "name": "Run pipeline (manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c7d6e21e-d628-488d-8f69-6efd6421273e",
+              "name": "icp",
+              "value": "B2B software companies in Germany with 20-200 employees that build products for manufacturing, logistics or industrial customers. Ideal buyers are engineering-led teams that ship a SaaS or API product and sell to other businesses.",
+              "type": "string"
+            },
+            {
+              "id": "3b91b508-3708-445e-a753-29832de6b11c",
+              "name": "maxCompanies",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "c38a56e5-7797-47b9-ac67-e2c50861cd1e",
+              "name": "queriesCount",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "ebc9ba80-31ef-43ea-ba19-24ced9e3e572",
+              "name": "scoreThreshold",
+              "value": 80,
+              "type": "number"
+            },
+            {
+              "id": "85f4cbc0-e57a-4ce8-93a3-0d23e0247f1d",
+              "name": "openaiModel",
+              "value": "gpt-4o-mini",
+              "type": "string"
+            },
+            {
+              "id": "34864cb1-c1f4-4e1b-8b3d-d73bab2fec40",
+              "name": "calendarId",
+              "value": "primary",
+              "type": "string"
+            },
+            {
+              "id": "b97fb78d-5fcf-4123-af50-056986fcb0f2",
+              "name": "timezone",
+              "value": "Europe/Berlin",
+              "type": "string"
+            },
+            {
+              "id": "f71b42fd-cb0b-475c-89a2-77ebdf7402b3",
+              "name": "workStartHour",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "11aefe77-c1b8-4e0e-8328-b829f47b8c2b",
+              "name": "workEndHour",
+              "value": 17,
+              "type": "number"
+            },
+            {
+              "id": "96db7d09-9455-4b60-8324-dbbae1fccfc1",
+              "name": "meetingMinutes",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "5ea88883-5d89-4aa5-82f0-4643600598e7",
+              "name": "minLeadHours",
+              "value": 24,
+              "type": "number"
+            },
+            {
+              "id": "6785fa91-f999-4129-912b-12d12ccd541d",
+              "name": "searchDays",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "e5aee17c-1b56-4433-a2f8-ad8b0ea7d512",
+              "name": "slackWebhookUrl",
+              "value": "https://hooks.slack.com/services/REPLACE/ME/PLEASE",
+              "type": "string"
+            },
+            {
+              "id": "5e48b241-fe5d-4fee-ab7e-ffc7068bc47e",
+              "name": "approvalWebhookBase",
+              "value": "http://localhost:5678/webhook/gtm-approval",
+              "type": "string"
+            },
+            {
+              "id": "f250de60-66f3-48cc-b062-379d8f7a43fb",
+              "name": "approvalSecret",
+              "value": "change-me-to-a-long-random-string",
+              "type": "string"
+            },
+            {
+              "id": "a0018835-48a0-4bd6-86f4-76aada8d31bb",
+              "name": "openaiBaseUrl",
+              "value": "https://api.openai.com",
+              "type": "string"
+            },
+            {
+              "id": "f01d1344-57a7-47d6-91c9-4c8562668302",
+              "name": "firecrawlBaseUrl",
+              "value": "https://api.firecrawl.dev",
+              "type": "string"
+            },
+            {
+              "id": "c44e1760-b0db-4d3c-bae8-5c5e587322cb",
+              "name": "hubspotBaseUrl",
+              "value": "https://api.hubapi.com",
+              "type": "string"
+            },
+            {
+              "id": "0d6b2836-b9ab-4fa0-b945-82b167784c0f",
+              "name": "googleBaseUrl",
+              "value": "https://www.googleapis.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "256d09fe-319b-42f0-aaef-bbd76d7b066f",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $input.first().json;\nconst schema = {\n  type: 'object', additionalProperties: false,\n  required: ['queries', 'criteria_summary'],\n  properties: {\n    queries: { type: 'array', items: { type: 'string' } },\n    criteria_summary: { type: 'string' }\n  }\n};\nconst request = {\n  model: c.openaiModel,\n  messages: [\n    { role: 'system', content: 'You are the GTM Manager Agent. You turn an ideal customer profile (ICP) into web search queries that surface the websites of individual companies matching it. Queries must target company websites (product, about or customers pages), not news articles, lists or directories.' },\n    { role: 'user', content: 'Ideal customer profile:\\n' + c.icp + '\\n\\nWrite exactly ' + c.queriesCount + ' distinct search queries. Also write a one-sentence criteria_summary of what a great-fit company looks like.' }\n  ],\n  response_format: { type: 'json_schema', json_schema: { name: 'gtm_plan', strict: true, schema } }\n};\nreturn [{ json: { request } }];\n"
+      },
+      "id": "7f3f9a2a-1f07-41ec-8cfa-a8fc6c6fd856",
+      "name": "Manager - Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.openaiBaseUrl }}/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "c4ff0bff-947b-4a96-90c6-fccf4ca8bd69",
+      "name": "Manager - OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_ME",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function readCompletion(r) {\n  if (!r || r.error || !r.choices) {\n    return { error: JSON.stringify((r && r.error) || r || 'empty response').slice(0, 300) };\n  }\n  const m = r.choices[0] && r.choices[0].message;\n  if (!m) return { error: 'no message in completion' };\n  if (m.refusal) return { error: 'model refusal: ' + m.refusal };\n  try { return { data: JSON.parse(m.content) }; }\n  catch (e) { return { error: 'model returned invalid JSON' }; }\n}\n\nconst c = $('Config').first().json;\nconst { data, error } = readCompletion($input.first().json);\nif (error) throw new Error('GTM Manager Agent failed: ' + error);\nconst queries = (data.queries || []).map(q => String(q).trim()).filter(Boolean).slice(0, c.queriesCount);\nif (!queries.length) throw new Error('GTM Manager Agent returned no search queries');\nreturn queries.map(q => ({ json: { query: q, criteria_summary: data.criteria_summary } }));\n"
+      },
+      "id": "8fb21d2d-6a7f-4144-bb53-aad024bf1834",
+      "name": "Manager - Parse plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.firecrawlBaseUrl }}/v1/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: $json.query, limit: 5, scrapeOptions: { formats: ['markdown'] } }) }}",
+        "options": {
+          "timeout": 90000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "a4980346-5c42-46b5-91fb-5186ec38fa14",
+      "name": "Research - Firecrawl search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ME",
+          "name": "Firecrawl API (Authorization header)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $('Config').first().json;\nconst blocked = ['linkedin.com','crunchbase.com','wikipedia.org','facebook.com','twitter.com','x.com',\n  'youtube.com','reddit.com','g2.com','capterra.com','glassdoor.com','indeed.com','medium.com',\n  'instagram.com','github.com','forbes.com','techcrunch.com','bloomberg.com','pitchbook.com'];\nconst seen = new Set();\nconst out = [];\nlet failedSearches = 0;\nfor (const item of $input.all()) {\n  const r = item.json;\n  if (r.error) { failedSearches++; continue; }\n  const results = Array.isArray(r.data) ? r.data : ((r.data && r.data.web) || []);\n  for (const x of results) {\n    if (!x.url) continue;\n    const hm = String(x.url).match(/^https?:\\/\\/([^\\/?#:]+)/i);\n    if (!hm) continue;\n    const host = hm[1].toLowerCase().replace(/^www\\./, '');\n    if (blocked.some(b => host === b || host.endsWith('.' + b))) continue;\n    if (seen.has(host)) continue;\n    const md = String(x.markdown || x.description || '').slice(0, 12000);\n    if (md.length < 150) continue;\n    seen.add(host);\n    out.push({ json: { domain: host, url: x.url, title: x.title || '', markdown: md } });\n    if (out.length >= c.maxCompanies) return out;\n  }\n}\nif (!out.length) throw new Error('Research found no usable company pages (' + failedSearches + ' searches failed). Check the Firecrawl credential and the ICP.');\nreturn out;\n"
+      },
+      "id": "d7da58b7-7b7f-419c-8310-cddab1a59125",
+      "name": "Research - Collect and dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const nstr = { type: ['string', 'null'] };\nconst schema = {\n  type: 'object', additionalProperties: false,\n  required: ['is_company_website','company_name','description','industry','location_city','location_country',\n             'employee_range','business_model','products','technologies','buying_signals','contact_email','source_quotes'],\n  properties: {\n    is_company_website: { type: 'boolean' },\n    company_name: { type: 'string' },\n    description: { type: 'string' },\n    industry: { type: 'string' },\n    location_city: nstr,\n    location_country: nstr,\n    employee_range: nstr,\n    business_model: { type: 'string', enum: ['B2B', 'B2C', 'B2B2C', 'Unknown'] },\n    products: { type: 'array', items: { type: 'string' } },\n    technologies: { type: 'array', items: { type: 'string' } },\n    buying_signals: { type: 'array', items: { type: 'string' } },\n    contact_email: nstr,\n    source_quotes: { type: 'array', items: { type: 'string' } }\n  }\n};\nconst c = $('Config').first().json;\nreturn $input.all().map(it => {\n  const p = it.json;\n  const request = {\n    model: c.openaiModel,\n    messages: [\n      { role: 'system', content: 'You are the Enrichment Agent. Extract structured company information from scraped web page content. Use ONLY facts stated in the page. If a fact is not present use null (or an empty list). Never guess employee counts, locations or emails. Set is_company_website=false if the page is not the website of a single operating company (for example an article, list, directory or marketplace). buying_signals are concrete signs the company may need new tools (hiring, funding, launches, expansion). source_quotes are up to 3 short verbatim quotes that support your extraction.' },\n      { role: 'user', content: 'Page URL: ' + p.url + '\\nPage title: ' + p.title + '\\n\\nPage content (markdown):\\n' + p.markdown }\n    ],\n    response_format: { type: 'json_schema', json_schema: { name: 'company_profile', strict: true, schema } }\n  };\n  return { json: { domain: p.domain, url: p.url, request } };\n});\n"
+      },
+      "id": "75dde322-cf2f-441b-b864-8fc7b0b2f21e",
+      "name": "Enrichment - Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.openaiBaseUrl }}/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "4e6f0c72-f8f9-4ad1-8f64-47e2f55cb9aa",
+      "name": "Enrichment - OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_ME",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function readCompletion(r) {\n  if (!r || r.error || !r.choices) {\n    return { error: JSON.stringify((r && r.error) || r || 'empty response').slice(0, 300) };\n  }\n  const m = r.choices[0] && r.choices[0].message;\n  if (!m) return { error: 'no message in completion' };\n  if (m.refusal) return { error: 'model refusal: ' + m.refusal };\n  try { return { data: JSON.parse(m.content) }; }\n  catch (e) { return { error: 'model returned invalid JSON' }; }\n}\n\n// Minimal JSON Schema validator (type, enum, required, properties, items, additionalProperties)\nfunction validate(v, s, path) {\n  path = path || '$';\n  const types = Array.isArray(s.type) ? s.type : [s.type];\n  const actual = v === null ? 'null' : Array.isArray(v) ? 'array'\n    : (typeof v === 'number' && Number.isInteger(v)) ? 'integer' : typeof v;\n  const ok = types.some(t => t === actual || (t === 'number' && actual === 'integer'));\n  if (!ok) return [path + ': expected ' + types.join('|') + ', got ' + actual];\n  const errs = [];\n  if (v === null) return errs;\n  if (s.enum && !s.enum.includes(v)) errs.push(path + ': value not in enum');\n  if (actual === 'object') {\n    for (const k of (s.required || [])) if (!(k in v)) errs.push(path + '.' + k + ': missing');\n    const props = s.properties || {};\n    for (const k of Object.keys(props)) if (k in v) errs.push(...validate(v[k], props[k], path + '.' + k));\n    if (s.additionalProperties === false)\n      for (const k of Object.keys(v)) if (!(k in props)) errs.push(path + '.' + k + ': unexpected property');\n  }\n  if (actual === 'array' && s.items) v.forEach((x, i) => errs.push(...validate(x, s.items, path + '[' + i + ']')));\n  return errs;\n}\n\nconst builds = $('Enrichment - Build prompt').all();\nconst schema = builds[0].json.request.response_format.json_schema.schema;\nconst out = [];\nconst dropped = [];\n$input.all().forEach((it, i) => {\n  const base = builds[i].json;\n  const { data, error } = readCompletion(it.json);\n  if (error) { dropped.push(base.domain + ': ' + error); return; }\n  const errs = validate(data, schema);\n  if (errs.length) { dropped.push(base.domain + ': schema invalid (' + errs.slice(0, 2).join('; ') + ')'); return; }\n  if (!data.is_company_website || !data.company_name.trim()) { dropped.push(base.domain + ': not a company website'); return; }\n  out.push({ json: { domain: base.domain, url: base.url, company: data } });\n});\nif (!out.length) throw new Error('Enrichment produced no valid company records. Dropped: ' + JSON.stringify(dropped).slice(0, 600));\nreturn out;\n"
+      },
+      "id": "37401035-e04d-4e1a-90c5-132e4a0436f1",
+      "name": "Enrichment - Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $('Config').first().json;\nconst schema = {\n  type: 'object', additionalProperties: false,\n  required: ['score', 'fit_reasons', 'concerns', 'recommended_next_step'],\n  properties: {\n    score: { type: 'integer' },\n    fit_reasons: { type: 'array', items: { type: 'string' } },\n    concerns: { type: 'array', items: { type: 'string' } },\n    recommended_next_step: { type: 'string' }\n  }\n};\nreturn $input.all().map(it => {\n  const l = it.json;\n  const request = {\n    model: c.openaiModel,\n    messages: [\n      { role: 'system', content: 'You are the Qualification Agent for an outbound sales team. Score how well a company matches the ideal customer profile (ICP) from 0 to 100. Use the whole range: 80+ means a clear, strong match on industry, size, geography and business model with credible buying signals; 50-79 is a partial match; below 50 is a poor match. Base the score ONLY on the facts provided; missing information lowers confidence and therefore the score. Give 2-4 short fit_reasons and 0-3 concerns.' },\n      { role: 'user', content: 'ICP:\\n' + c.icp + '\\n\\nCompany facts (JSON):\\n' + JSON.stringify(l.company, null, 1) }\n    ],\n    response_format: { type: 'json_schema', json_schema: { name: 'lead_score', strict: true, schema } }\n  };\n  return { json: { domain: l.domain, url: l.url, company: l.company, request } };\n});\n"
+      },
+      "id": "bb9f2d64-f6d1-45af-80b1-5e69144c0acb",
+      "name": "Qualification - Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.openaiBaseUrl }}/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "9244db08-35ea-4532-bab2-2c8199d2c61a",
+      "name": "Qualification - OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_ME",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function readCompletion(r) {\n  if (!r || r.error || !r.choices) {\n    return { error: JSON.stringify((r && r.error) || r || 'empty response').slice(0, 300) };\n  }\n  const m = r.choices[0] && r.choices[0].message;\n  if (!m) return { error: 'no message in completion' };\n  if (m.refusal) return { error: 'model refusal: ' + m.refusal };\n  try { return { data: JSON.parse(m.content) }; }\n  catch (e) { return { error: 'model returned invalid JSON' }; }\n}\n\n// Minimal JSON Schema validator (type, enum, required, properties, items, additionalProperties)\nfunction validate(v, s, path) {\n  path = path || '$';\n  const types = Array.isArray(s.type) ? s.type : [s.type];\n  const actual = v === null ? 'null' : Array.isArray(v) ? 'array'\n    : (typeof v === 'number' && Number.isInteger(v)) ? 'integer' : typeof v;\n  const ok = types.some(t => t === actual || (t === 'number' && actual === 'integer'));\n  if (!ok) return [path + ': expected ' + types.join('|') + ', got ' + actual];\n  const errs = [];\n  if (v === null) return errs;\n  if (s.enum && !s.enum.includes(v)) errs.push(path + ': value not in enum');\n  if (actual === 'object') {\n    for (const k of (s.required || [])) if (!(k in v)) errs.push(path + '.' + k + ': missing');\n    const props = s.properties || {};\n    for (const k of Object.keys(props)) if (k in v) errs.push(...validate(v[k], props[k], path + '.' + k));\n    if (s.additionalProperties === false)\n      for (const k of Object.keys(v)) if (!(k in props)) errs.push(path + '.' + k + ': unexpected property');\n  }\n  if (actual === 'array' && s.items) v.forEach((x, i) => errs.push(...validate(x, s.items, path + '[' + i + ']')));\n  return errs;\n}\n\nconst c = $('Config').first().json;\nconst builds = $('Qualification - Build prompt').all();\nconst schema = builds[0].json.request.response_format.json_schema.schema;\nconst out = [];\nconst dropped = [];\n$input.all().forEach((it, i) => {\n  const b = builds[i].json;\n  const { data, error } = readCompletion(it.json);\n  if (error) { dropped.push(b.domain + ': ' + error); return; }\n  const errs = validate(data, schema);\n  if (errs.length) { dropped.push(b.domain + ': schema invalid'); return; }\n  const score = Math.max(0, Math.min(100, Math.round(data.score)));\n  out.push({ json: { domain: b.domain, url: b.url, company: b.company,\n    qualification: { ...data, score }, qualified: score >= c.scoreThreshold } });\n});\nif (!out.length) throw new Error('Qualification failed for every lead: ' + JSON.stringify(dropped).slice(0, 600));\nout.sort((a, b) => b.json.qualification.score - a.json.qualification.score);\nreturn out;\n"
+      },
+      "id": "aa402f4a-c733-49e8-adac-2f800b2543cf",
+      "name": "Qualification - Parse and score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "061973af-05fc-4bd8-aceb-9fa208a0bbfe",
+              "leftValue": "={{ $json.qualification.score }}",
+              "rightValue": "={{ $('Config').first().json.scoreThreshold }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b04bcf0c-971d-4ed0-bb29-6dc38a83671f",
+      "name": "Score >= threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "41325ab4-a766-49f3-a64a-34f1f7834fa6",
+      "name": "Stop - below threshold",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(it => {\n  const { company: c, qualification: q, url, domain } = it.json;\n  const description = [\n    c.description, '',\n    'GTM fit score: ' + q.score + '/100',\n    ...q.fit_reasons.map(x => '+ ' + x),\n    ...q.concerns.map(x => '- ' + x),\n    '', 'Source: ' + url\n  ].join('\\n').slice(0, 3000);\n  const properties = { name: c.company_name, domain, description };\n  if (c.location_city) properties.city = c.location_city;\n  if (c.location_country) properties.country = c.location_country;\n  return { json: { ...it.json, hubspotBody: { properties } } };\n});\n"
+      },
+      "id": "853df095-f7f0-46fe-ba38-a431efc59e3d",
+      "name": "HubSpot - Build payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.hubspotBaseUrl }}/crm/v3/objects/companies",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.hubspotBody) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken"
+      },
+      "id": "1646cbfd-1095-45a2-9e0c-3770dbc46a9e",
+      "name": "HubSpot - Create company",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3600,
+        200
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "REPLACE_ME",
+          "name": "HubSpot App Token"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const builds = $('HubSpot - Build payload').all();\nreturn $input.all().map((it, i) => {\n  const { hubspotBody, ...rest } = builds[i].json;\n  const r = it.json || {};\n  const ok = r.id !== undefined && r.id !== null;\n  return { json: { ...rest,\n    hubspotId: ok ? String(r.id) : null,\n    hubspotError: ok ? null : JSON.stringify(r.message || r.error || r).slice(0, 200) } };\n});\n"
+      },
+      "id": "cc4af848-46c8-4898-801a-d9698740f8d9",
+      "name": "HubSpot - Merge result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $('Config').first().json;\nconst min = Date.now() + c.minLeadHours * 3600000;\nconst max = min + c.searchDays * 86400000;\nreturn [{ json: { request: {\n  timeMin: new Date(min).toISOString(),\n  timeMax: new Date(max).toISOString(),\n  timeZone: c.timezone,\n  items: [{ id: c.calendarId }]\n} } }];\n"
+      },
+      "id": "e10ce545-c677-45ca-b406-0f8163f32e65",
+      "name": "Scheduling - Build availability query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.googleBaseUrl }}/calendar/v3/freeBusy",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api"
+      },
+      "id": "784e5b4c-da49-4be5-abe7-d726dc96cdf7",
+      "name": "Calendar - Free/busy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4320,
+        200
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REPLACE_ME",
+          "name": "Google Calendar account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $('Config').first().json;\nconst leads = $('HubSpot - Merge result').all().map(i => i.json);\nconst fb = $input.first().json;\nif (fb.error) throw new Error('Google Calendar free/busy failed: ' + JSON.stringify(fb.error).slice(0, 300));\nconst cal = Object.values(fb.calendars || {})[0] || {};\nif (cal.errors && cal.errors.length) throw new Error('Google Calendar error: ' + JSON.stringify(cal.errors));\nconst busy = (cal.busy || []).map(b => [Date.parse(b.start), Date.parse(b.end)]);\n\nconst STEP = 30 * 60000, DUR = c.meetingMinutes * 60000, BUF = 15 * 60000;\nconst fmt = new Intl.DateTimeFormat('en-US', { timeZone: c.timezone, weekday: 'short',\n  hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });\nconst parts = ms => { const o = {}; fmt.formatToParts(new Date(ms)).forEach(p => o[p.type] = p.value);\n  return { wd: o.weekday, min: (+o.hour) * 60 + (+o.minute) }; };\nconst inHours = s => {\n  const a = parts(s), b = parts(s + DUR);\n  if (a.wd === 'Sat' || a.wd === 'Sun' || a.wd !== b.wd) return false;\n  return a.min >= c.workStartHour * 60 && b.min <= c.workEndHour * 60 && b.min > a.min;\n};\nconst clashes = s => busy.some(([bs, be]) => s < be && s + DUR > bs);\nconst label = ms => new Date(ms).toLocaleString('en-GB', { timeZone: c.timezone, weekday: 'long', day: 'numeric',\n  month: 'long', hour: '2-digit', minute: '2-digit' }) + ' (' + c.timezone + ')';\n\nconst searchStart = Math.ceil((Date.now() + c.minLeadHours * 3600000) / STEP) * STEP;\nconst searchEnd = searchStart + c.searchDays * 86400000;\nlet t = searchStart;\nconst out = [];\nfor (const lead of leads) {\n  let found = null;\n  while (t < searchEnd) {\n    if (inHours(t) && !clashes(t)) { found = t; break; }\n    t += STEP;\n  }\n  if (found === null) break;\n  busy.push([found - BUF, found + DUR + BUF]);   // keep later leads from overlapping this one\n  out.push({ json: { ...lead, slot: { start: new Date(found).toISOString(),\n    end: new Date(found + DUR).toISOString(), label: label(found) } } });\n  t = found + STEP;\n}\nif (!out.length) throw new Error('No free ' + c.meetingMinutes + '-minute slot in the next ' + c.searchDays + ' days within ' + c.workStartHour + ':00-' + c.workEndHour + ':00 ' + c.timezone);\nreturn out;\n"
+      },
+      "id": "f8ead35a-98f9-4a84-b30b-3ae10e1ffc2b",
+      "name": "Scheduling - Assign slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $('Config').first().json;\nconst schema = {\n  type: 'object', additionalProperties: false,\n  required: ['meeting_title', 'agenda', 'opening_line'],\n  properties: {\n    meeting_title: { type: 'string' },\n    agenda: { type: 'array', items: { type: 'string' } },\n    opening_line: { type: 'string' }\n  }\n};\nreturn $input.all().map(it => {\n  const l = it.json;\n  const request = {\n    model: c.openaiModel,\n    messages: [\n      { role: 'system', content: 'You are the Scheduling Agent. Prepare a short discovery-call invite for a qualified lead. meeting_title: under 70 characters and includes the company name. agenda: 3 to 4 items, each under 90 characters. opening_line: one friendly sentence a salesperson could open with, grounded in the company facts. Do not invent facts.' },\n      { role: 'user', content: 'Company: ' + l.company.company_name + '\\nWhat they do: ' + l.company.description + '\\nWhy they fit: ' + l.qualification.fit_reasons.join('; ') + '\\nMeeting length: ' + c.meetingMinutes + ' minutes' }\n    ],\n    response_format: { type: 'json_schema', json_schema: { name: 'meeting_plan', strict: true, schema } }\n  };\n  return { json: { ...l, request } };\n});\n"
+      },
+      "id": "f3c628a9-b68c-4198-8cf8-c1bc5219c337",
+      "name": "Scheduling Agent - Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4800,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.openaiBaseUrl }}/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "1901cf8b-7d56-4828-a978-e731b9059aa7",
+      "name": "Scheduling Agent - OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5040,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_ME",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function readCompletion(r) {\n  if (!r || r.error || !r.choices) {\n    return { error: JSON.stringify((r && r.error) || r || 'empty response').slice(0, 300) };\n  }\n  const m = r.choices[0] && r.choices[0].message;\n  if (!m) return { error: 'no message in completion' };\n  if (m.refusal) return { error: 'model refusal: ' + m.refusal };\n  try { return { data: JSON.parse(m.content) }; }\n  catch (e) { return { error: 'model returned invalid JSON' }; }\n}\n\n// Minimal JSON Schema validator (type, enum, required, properties, items, additionalProperties)\nfunction validate(v, s, path) {\n  path = path || '$';\n  const types = Array.isArray(s.type) ? s.type : [s.type];\n  const actual = v === null ? 'null' : Array.isArray(v) ? 'array'\n    : (typeof v === 'number' && Number.isInteger(v)) ? 'integer' : typeof v;\n  const ok = types.some(t => t === actual || (t === 'number' && actual === 'integer'));\n  if (!ok) return [path + ': expected ' + types.join('|') + ', got ' + actual];\n  const errs = [];\n  if (v === null) return errs;\n  if (s.enum && !s.enum.includes(v)) errs.push(path + ': value not in enum');\n  if (actual === 'object') {\n    for (const k of (s.required || [])) if (!(k in v)) errs.push(path + '.' + k + ': missing');\n    const props = s.properties || {};\n    for (const k of Object.keys(props)) if (k in v) errs.push(...validate(v[k], props[k], path + '.' + k));\n    if (s.additionalProperties === false)\n      for (const k of Object.keys(v)) if (!(k in props)) errs.push(path + '.' + k + ': unexpected property');\n  }\n  if (actual === 'array' && s.items) v.forEach((x, i) => errs.push(...validate(x, s.items, path + '[' + i + ']')));\n  return errs;\n}\n\nconst builds = $('Scheduling Agent - Build prompt').all();\nconst schema = builds[0].json.request.response_format.json_schema.schema;\nreturn $input.all().map((it, i) => {\n  const { request, ...lead } = builds[i].json;\n  const { data, error } = readCompletion(it.json);\n  let meeting = null;\n  if (!error && validate(data, schema).length === 0) meeting = data;\n  if (!meeting) meeting = {   // graceful fallback so a flaky LLM call never blocks a booking\n    meeting_title: 'Intro call: ' + lead.company.company_name,\n    agenda: ['Introductions', 'Your current challenges', 'How we could help', 'Next steps'],\n    opening_line: ''\n  };\n  return { json: { ...lead, meeting } };\n});\n"
+      },
+      "id": "81dad742-e21b-40cf-931f-955259154d76",
+      "name": "Scheduling Agent - Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(it => {\n  const l = it.json;\n  const full = {\n    n: l.company.company_name, u: l.url, h: l.hubspotId, sc: l.qualification.score,\n    s: l.slot.start, e: l.slot.end, l: l.slot.label,\n    t: l.meeting.meeting_title, a: l.meeting.agenda, o: l.meeting.opening_line\n  };\n  let p = Buffer.from(JSON.stringify(full)).toString('base64url');\n  if (p.length > 2200) {   // keep the URL inside Slack's button limit\n    const { a, o, ...slim } = full;\n    p = Buffer.from(JSON.stringify(slim)).toString('base64url');\n  }\n  return { json: { ...l, p } };\n});\n"
+      },
+      "id": "9f284c50-faf5-4a38-a5ad-e4202e8bd80a",
+      "name": "Approval - Build link payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5520,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.p }}",
+        "dataPropertyName": "sig",
+        "secret": "={{ $('Config').first().json.approvalSecret }}",
+        "encoding": "hex"
+      },
+      "id": "787dfe5a-fe92-41da-bb33-61a06f46039b",
+      "name": "Approval - Sign link (HMAC)",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        5760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $('Config').first().json;\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nreturn $input.all().map(it => {\n  const l = it.json;\n  const link = d => c.approvalWebhookBase + '?p=' + l.p + '&sig=' + l.sig + '&decision=' + d;\n  const bullets = arr => (arr && arr.length ? arr.map(x => '• ' + esc(x)).join('\\n') : '_none_');\n  const slack = {\n    text: 'Meeting approval needed: ' + l.company.company_name,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: 'Meeting approval: ' + l.company.company_name.slice(0, 120) } },\n      { type: 'section', fields: [\n        { type: 'mrkdwn', text: '*Fit score*\\n' + l.qualification.score + '/100' },\n        { type: 'mrkdwn', text: '*Proposed slot*\\n' + esc(l.slot.label) },\n        { type: 'mrkdwn', text: '*Website*\\n' + esc(l.url) },\n        { type: 'mrkdwn', text: '*HubSpot*\\n' + (l.hubspotId ? 'company #' + l.hubspotId : ':warning: not saved (' + esc(l.hubspotError) + ')') }\n      ] },\n      { type: 'section', text: { type: 'mrkdwn', text: '*Why they fit*\\n' + bullets(l.qualification.fit_reasons) +\n        '\\n*Concerns*\\n' + bullets(l.qualification.concerns) } },\n      { type: 'section', text: { type: 'mrkdwn', text: '*Agenda*\\n' + bullets(l.meeting.agenda) } },\n      { type: 'actions', elements: [\n        { type: 'button', style: 'primary', text: { type: 'plain_text', text: 'Approve and book' }, url: link('approve') },\n        { type: 'button', style: 'danger', text: { type: 'plain_text', text: 'Reject' }, url: link('reject') }\n      ] }\n    ]\n  };\n  return { json: { slack, company: l.company.company_name } };\n});\n"
+      },
+      "id": "e9074b85-3d56-49fd-b090-621f3c9920b7",
+      "name": "Slack - Build approval message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.slackWebhookUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.slack) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ccce3546-4288-47d1-a6d4-d451b0f3a9ab",
+      "name": "Slack - Send approval request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6240,
+        200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "gtm-approval",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "21642cd5-bcab-4a79-9425-ddac3df86473",
+      "name": "Approval Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        900
+      ],
+      "webhookId": "695e34f9-1148-4665-8f47-d3bb03312aff"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8aaca51-1619-4e94-bcc1-c104313035b1",
+              "name": "approvalSecret",
+              "value": "change-me-to-a-long-random-string",
+              "type": "string"
+            },
+            {
+              "id": "89b09979-bb57-4529-928d-bbfeccef1bf6",
+              "name": "slackWebhookUrl",
+              "value": "https://hooks.slack.com/services/REPLACE/ME/PLEASE",
+              "type": "string"
+            },
+            {
+              "id": "5d893e8b-b17e-4fac-b30c-56a3a6d74e75",
+              "name": "calendarId",
+              "value": "primary",
+              "type": "string"
+            },
+            {
+              "id": "da82a1f4-9740-4015-a58f-11fbad7efd9c",
+              "name": "timezone",
+              "value": "Europe/Berlin",
+              "type": "string"
+            },
+            {
+              "id": "a251c84c-46c7-41fc-915a-2d1066717b74",
+              "name": "googleBaseUrl",
+              "value": "https://www.googleapis.com",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ade8369b-270a-4fe6-8ecc-88cc54b27478",
+      "name": "Approval Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.query.p || '' }}",
+        "dataPropertyName": "computedSig",
+        "secret": "={{ $json.approvalSecret }}",
+        "encoding": "hex"
+      },
+      "id": "b43efb87-9539-4030-90cf-ea91ab9bba30",
+      "name": "Approval - Recompute signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        480,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const q = $('Approval Webhook').first().json.query || {};\nconst computed = $input.first().json.computedSig;\nconst bad = (http, message) => [{ json: { status: 'invalid', http, message } }];\nif (!q.p || !q.sig || !q.decision) return bad(400, 'This link is missing required parameters.');\nif (q.sig !== computed) return bad(403, 'This approval link is invalid or has been tampered with.');\nif (!['approve', 'reject'].includes(q.decision)) return bad(400, 'Unknown decision.');\nlet payload;\ntry { payload = JSON.parse(Buffer.from(q.p, 'base64url').toString('utf8')); }\ncatch (e) { return bad(400, 'This link is malformed.'); }\nif (Date.parse(payload.s) < Date.now()) return bad(410, 'The proposed time slot has already passed. Run the pipeline again for a fresh slot.');\nreturn [{ json: { status: 'ok', decision: q.decision, sig: q.sig, payload } }];\n"
+      },
+      "id": "d0e43ac3-b825-4a45-9b6f-6c3dddb14ca7",
+      "name": "Approval - Verify",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "6e479c82-8c4a-4f16-845e-73dd8c66e44b",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6509eb20-c424-47f5-b9b0-b0d7340ac683",
+      "name": "Link valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const page = (icon, title, msg) => '<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>' + title +\n  '</title><body style=\"font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;text-align:center;color:#222\"><div style=\"font-size:3rem\">' +\n  icon + '</div><h2>' + title + '</h2><p>' + msg + '</p></body>';\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst v = $('Approval - Verify').first().json;\nreturn [{ json: { http: v.http, html: page('&#9888;&#65039;', 'Link not accepted', esc(v.message)) } }];\n"
+      },
+      "id": "d31a08ee-3407-4bde-ae83-ba9eaab86464",
+      "name": "Result - Invalid link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "981555b8-1ad8-4c2c-9c25-5a178e927c89",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6cdf6e6f-e9e6-4e96-bde4-269c66bdfe6a",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const v = $input.first().json;\nconst p = v.payload;\nconst cfg = $('Approval Config').first().json;\nconst description = [\n  p.o || '', '', 'Agenda:', ...(p.a || []).map(x => '- ' + x), '',\n  'Company: ' + p.n + ' (' + p.u + ')',\n  'Fit score: ' + p.sc + '/100',\n  p.h ? 'HubSpot company ID: ' + p.h : '',\n  '', 'Booked by GTM Automation after human approval.'\n].filter((x, i, arr) => !(x === '' && arr[i - 1] === '')).join('\\n');\nreturn [{ json: {\n  eventUrl: cfg.googleBaseUrl + '/calendar/v3/calendars/' + encodeURIComponent(cfg.calendarId) + '/events',\n  event: {\n    id: v.sig,   // deterministic ID: clicking the same link twice can never create a duplicate meeting\n    summary: p.t, description,\n    start: { dateTime: p.s, timeZone: cfg.timezone },\n    end: { dateTime: p.e, timeZone: cfg.timezone }\n  }\n} }];\n"
+      },
+      "id": "7f522361-0f95-4d3b-87fe-e0b77252f989",
+      "name": "Calendar - Build event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.eventUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.event) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api"
+      },
+      "id": "00b37be1-c9b9-47c7-a728-d36e0518e671",
+      "name": "Calendar - Create event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        700
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REPLACE_ME",
+          "name": "Google Calendar account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const r = $input.first().json || {};\nconst p = $('Approval - Verify').first().json.payload;\nif (r.id && r.status !== 'cancelled') return [{ json: { booked: true, link: r.htmlLink || '', message: 'Meeting booked with ' + p.n + '.' } }];\nconst code = (r.error && r.error.code) || r.code;\nif (code === 409) return [{ json: { booked: false, message: 'This meeting was already booked (or this link was used before).' } }];\nreturn [{ json: { booked: false, message: 'Calendar booking failed: ' + JSON.stringify(r.error || r).slice(0, 200) } }];\n"
+      },
+      "id": "da4ea4c6-181c-4ac9-9956-f7ac4a2db76e",
+      "name": "Booking result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "d08b8b33-0136-49e6-911f-40785846939a",
+              "leftValue": "={{ $json.booked }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2bf7be88-36b3-49c5-a922-c782caec26e7",
+      "name": "Booked?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2160,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Approval Config').first().json.slackWebhookUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: ':white_check_mark: Meeting booked with ' + $('Approval - Verify').first().json.payload.n + ' on ' + $('Approval - Verify').first().json.payload.l + ($('Booking result').first().json.link ? ' (<' + $('Booking result').first().json.link + '|open in Google Calendar>)' : '') }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "1e9563ad-ff51-43e3-9bd2-2b68e262395e",
+      "name": "Slack - Booking confirmed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        600
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const page = (icon, title, msg) => '<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>' + title +\n  '</title><body style=\"font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;text-align:center;color:#222\"><div style=\"font-size:3rem\">' +\n  icon + '</div><h2>' + title + '</h2><p>' + msg + '</p></body>';\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst v = $('Approval - Verify').first().json.payload;\nreturn [{ json: { http: 200, html: page('&#9989;', 'Meeting booked', esc(v.n) + '<br>' + esc(v.l)) } }];\n"
+      },
+      "id": "8588f6bf-83c6-4d44-b6eb-51db1ca23715",
+      "name": "Result - Booked",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const page = (icon, title, msg) => '<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>' + title +\n  '</title><body style=\"font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;text-align:center;color:#222\"><div style=\"font-size:3rem\">' +\n  icon + '</div><h2>' + title + '</h2><p>' + msg + '</p></body>';\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst b = $('Booking result').first().json;\nreturn [{ json: { http: 200, html: page('&#8505;&#65039;', 'Nothing booked', esc(b.message)) } }];\n"
+      },
+      "id": "0145e313-280b-4581-94dc-b127f3d80a7d",
+      "name": "Result - Not booked",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Approval Config').first().json.slackWebhookUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: ':x: Meeting proposal rejected for ' + $('Approval - Verify').first().json.payload.n }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "c2defa8c-2893-4249-ba4b-85486aca4b54",
+      "name": "Slack - Rejected notice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        920
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const page = (icon, title, msg) => '<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>' + title +\n  '</title><body style=\"font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;text-align:center;color:#222\"><div style=\"font-size:3rem\">' +\n  icon + '</div><h2>' + title + '</h2><p>' + msg + '</p></body>';\nconst esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst v = $('Approval - Verify').first().json.payload;\nreturn [{ json: { http: 200, html: page('&#10060;', 'Rejected', 'No meeting was booked with ' + esc(v.n) + '.') } }];\n"
+      },
+      "id": "ee6b2d64-a826-4205-bd4a-595fa8227be1",
+      "name": "Result - Rejected",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.http }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8fed5957-ea23-4a57-a02e-ded9df40bb0f",
+      "name": "Respond to approver",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2880,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## GTM Automation: pipeline\n**Setup (5 min)**\n1. Edit the **Config** node: ICP, threshold, timezone, working hours, Slack webhook URL, approval base URL and secret.\n2. Assign credentials: OpenAI, Firecrawl (Header Auth: `Authorization: Bearer fc-...`), HubSpot App Token, Google Calendar OAuth2.\n3. Set the same secret / Slack URL / calendar in **Approval Config** (bottom flow).\n4. Activate the workflow (the approval links need the production webhook), then click *Execute workflow* on the manual trigger.",
+        "height": 250,
+        "width": 900,
+        "color": 4
+      },
+      "id": "26942121-3899-47dc-9181-2aa7860be347",
+      "name": "Note 45",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1 Manager, 2 Research, 3 Enrichment, 4 Qualification\nEach agent = build prompt (Code) > OpenAI (strict JSON schema) > validate (Code). Bad model output is dropped, never passed on.",
+        "height": 120,
+        "width": 1500,
+        "color": 5
+      },
+      "id": "77304bc0-54f4-4fd8-a757-c944434fb6b1",
+      "name": "Note 46",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 5 CRM and 6 Scheduling and 7 Human approval\nOnly leads with score >= threshold reach HubSpot. One free/busy call assigns non-overlapping slots. Nothing is booked until a human clicks **Approve** in Slack.",
+        "height": 120,
+        "width": 1900,
+        "color": 6
+      },
+      "id": "7ab34171-d2e0-4dd1-9e5b-128aafc15859",
+      "name": "Note 47",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        -30
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Approval flow (runs when a person clicks a Slack button)\nThe link carries the proposed meeting, signed with HMAC-SHA256. Tampered or expired links are refused. The Google event ID is derived from the signature, so double-clicks cannot double-book.",
+        "height": 150,
+        "width": 1000,
+        "color": 3
+      },
+      "id": "f749f191-83ad-4c22-bdfc-28e3aca96abe",
+      "name": "Note 48",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        570
+      ]
+    }
+  ],
+  "connections": {
+    "Run pipeline (manual)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Manager - Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manager - Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Manager - OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manager - OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Manager - Parse plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manager - Parse plan": {
+      "main": [
+        [
+          {
+            "node": "Research - Firecrawl search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research - Firecrawl search": {
+      "main": [
+        [
+          {
+            "node": "Research - Collect and dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research - Collect and dedupe": {
+      "main": [
+        [
+          {
+            "node": "Enrichment - Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichment - Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Enrichment - OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichment - OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Enrichment - Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichment - Validate": {
+      "main": [
+        [
+          {
+            "node": "Qualification - Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualification - Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Qualification - OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualification - OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Qualification - Parse and score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualification - Parse and score": {
+      "main": [
+        [
+          {
+            "node": "Score >= threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score >= threshold?": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Build payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop - below threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Build payload": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Create company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Create company": {
+      "main": [
+        [
+          {
+            "node": "HubSpot - Merge result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot - Merge result": {
+      "main": [
+        [
+          {
+            "node": "Scheduling - Build availability query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduling - Build availability query": {
+      "main": [
+        [
+          {
+            "node": "Calendar - Free/busy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Free/busy": {
+      "main": [
+        [
+          {
+            "node": "Scheduling - Assign slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduling - Assign slots": {
+      "main": [
+        [
+          {
+            "node": "Scheduling Agent - Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduling Agent - Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Scheduling Agent - OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduling Agent - OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Scheduling Agent - Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduling Agent - Parse": {
+      "main": [
+        [
+          {
+            "node": "Approval - Build link payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval - Build link payload": {
+      "main": [
+        [
+          {
+            "node": "Approval - Sign link (HMAC)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval - Sign link (HMAC)": {
+      "main": [
+        [
+          {
+            "node": "Slack - Build approval message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Build approval message": {
+      "main": [
+        [
+          {
+            "node": "Slack - Send approval request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Approval Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Config": {
+      "main": [
+        [
+          {
+            "node": "Approval - Recompute signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval - Recompute signature": {
+      "main": [
+        [
+          {
+            "node": "Approval - Verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval - Verify": {
+      "main": [
+        [
+          {
+            "node": "Link valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link valid?": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result - Invalid link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Calendar - Build event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Rejected notice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Rejected notice": {
+      "main": [
+        [
+          {
+            "node": "Result - Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Build event": {
+      "main": [
+        [
+          {
+            "node": "Calendar - Create event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar - Create event": {
+      "main": [
+        [
+          {
+            "node": "Booking result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking result": {
+      "main": [
+        [
+          {
+            "node": "Booked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booked?": {
+      "main": [
+        [
+          {
+            "node": "Slack - Booking confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result - Not booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Booking confirmed": {
+      "main": [
+        [
+          {
+            "node": "Result - Booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result - Invalid link": {
+      "main": [
+        [
+          {
+            "node": "Respond to approver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result - Rejected": {
+      "main": [
+        [
+          {
+            "node": "Respond to approver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result - Booked": {
+      "main": [
+        [
+          {
+            "node": "Respond to approver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result - Not booked": {
+      "main": [
+        [
+          {
+            "node": "Respond to approver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e771fa6c-ef57-4d96-b5bf-4d2097a7ffcb",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
